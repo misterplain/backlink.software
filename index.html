@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <!-- ============================================================
+    Head — character encoding, viewport, page title, stylesheet
+  ============================================================= -->
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>backlink.software</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <!-- ============================================================
+    Body
+  ============================================================= -->
+  <body>
+    <!-- App shell: centres all content on the page -->
+    <main class="shell">
+      <section class="app" aria-label="backlink.software obfuscation tool">
+        <!-- Hero: page title and one-line description -->
+        <header class="hero">
+          <p class="eyebrow">Backlink injector</p>
+          <h1>backlink.software</h1>
+          <p class="subhead">
+            Paste a URL, generate a minimal obfuscated snippet, and preview the
+            original code before you copy it into your project.
+          </p>
+        </header>
+
+        <!-- Generator card -->
+        <section class="card" aria-labelledby="generator-title">
+          <div class="card-inner">
+            <!-- URL input row: text field + Generate button -->
+            <div>
+              <label class="field-label" for="urlInput">Backlink URL</label>
+              <div class="input-row">
+                <input
+                  id="urlInput"
+                  name="urlInput"
+                  type="text"
+                  inputmode="url"
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="https://example.com"
+                />
+                <button id="generateButton" class="primary" type="button">
+                  Generate
+                </button>
+              </div>
+            </div>
+
+            <!-- Inline status message: empty until JS sets data-state -->
+            <div
+              id="statusMessage"
+              class="status"
+              role="status"
+              aria-live="polite"
+            ></div>
+
+            <!-- Output area: read-only textarea + Peek + Copy buttons -->
+            <div class="output-wrap">
+              <div class="output-head">
+                <div>
+                  <label
+                    class="field-label"
+                    for="outputCode"
+                    id="generator-title"
+                    >Obfuscated output</label
+                  >
+                  <div class="tiny-copy">
+                    Copy this into your project after generation.
+                  </div>
+                </div>
+                <button
+                  id="peekButton"
+                  class="secondary"
+                  type="button"
+                  disabled
+                >
+                  Peek
+                </button>
+              </div>
+              <textarea
+                id="outputCode"
+                readonly
+                placeholder="Your obfuscated snippet will appear here."
+              ></textarea>
+              <div class="button-row">
+                <button
+                  id="copyOutputButton"
+                  class="secondary"
+                  type="button"
+                  disabled
+                >
+                  Copy output
+                </button>
+              </div>
+              <p class="helper-text">
+                Generate first, then copy this output into your project.
+              </p>
+            </div>
+
+            <!-- Test lab: run the snippet in-page and verify clipboard output -->
+            <section class="test-lab" aria-labelledby="testLabTitle">
+              <h3 class="test-title" id="testLabTitle">
+                Test the generated obfuscated code
+              </h3>
+              <ol class="test-steps">
+                <li>Generate an obfuscated snippet from your URL.</li>
+                <li>
+                  The test listener is activated automatically. Select the
+                  sample text and copy it.
+                </li>
+                <li>
+                  Paste into the box below and confirm the Source backlink is
+                  appended.
+                </li>
+              </ol>
+
+              <div class="button-row">
+                <button
+                  id="selectTestSampleButton"
+                  class="secondary"
+                  type="button"
+                >
+                  Select sample text
+                </button>
+              </div>
+
+              <p id="testExpectation" class="helper-text">
+                Expected result after paste: your copied text + Source: your URL
+              </p>
+
+              <div class="sample-box">
+                <p class="sample-content" id="testSampleContent">
+                  This is sample content to verify backlink injection. Copy this
+                  sentence, then paste it below to check whether Source is
+                  automatically appended.
+                </p>
+              </div>
+
+              <label class="field-label" for="testPasteBox">Paste result</label>
+              <textarea
+                id="testPasteBox"
+                placeholder="Paste here after copying the sample text."
+              ></textarea>
+              <div
+                id="testStatusMessage"
+                class="status"
+                role="status"
+                aria-live="polite"
+              ></div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <!-- Peek modal: full-screen overlay showing the unobfuscated source -->
+    <div id="peekModal" class="modal" hidden aria-hidden="true">
+      <div
+        class="modal-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modalTitle"
+      >
+        <div class="modal-top">
+          <h2 class="modal-title" id="modalTitle">
+            Original unobfuscated code
+          </h2>
+          <button id="closeModalButton" class="secondary" type="button">
+            Close
+          </button>
+        </div>
+        <pre id="peekOutput"></pre>
+      </div>
+    </div>
+
+    <!-- Main script: deferred so the DOM is ready before execution -->
+    <script src="obfuscation.js" defer></script>
+  </body>
+</html>

@@ -1,0 +1,416 @@
+/* =============================================================
+   Design tokens
+   Global CSS custom properties consumed throughout the sheet.
+   ============================================================= */
+
+:root {
+  color-scheme: light;
+  --bg: #f4f1ea;
+  --panel: rgba(255, 255, 255, 0.82);
+  --panel-strong: #ffffff;
+  --text: #161616;
+  --muted: #606060;
+  --line: rgba(22, 22, 22, 0.12);
+  --accent: #0f766e;
+  --accent-strong: #115e59;
+  --error: #b42318;
+  --success: #067647;
+  --shadow: 0 24px 60px rgba(17, 24, 39, 0.12);
+}
+
+/* =============================================================
+   Base reset & typography
+   ============================================================= */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(15, 118, 110, 0.14),
+      transparent 38%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      rgba(17, 94, 89, 0.12),
+      transparent 34%
+    ),
+    linear-gradient(180deg, #fbfaf7 0%, var(--bg) 100%);
+  color: var(--text);
+}
+
+/* =============================================================
+   Page layout
+   .shell centres content vertically and horizontally.
+   .app constrains the max width and stacks sections.
+   ============================================================= */
+
+.shell {
+  min-height: 100vh;
+  padding: 32px 20px 40px;
+  display: grid;
+  place-items: center;
+}
+
+.app {
+  width: min(920px, 100%);
+  display: grid;
+  gap: 20px;
+}
+
+/* =============================================================
+   Hero / page header
+   ============================================================= */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent-strong);
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.3rem, 4vw, 4.4rem);
+  line-height: 0.96;
+  letter-spacing: -0.06em;
+}
+
+.subhead {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* =============================================================
+   Card component
+   Frosted-glass surface that wraps the generator UI.
+   ============================================================= */
+
+.card {
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.card-inner {
+  padding: 22px;
+  display: grid;
+  gap: 18px;
+}
+
+/* =============================================================
+   Form elements — labels, inputs, textareas
+   ============================================================= */
+
+.field-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.input-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr auto;
+}
+
+input,
+textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  font: inherit;
+}
+
+input {
+  padding: 15px 16px;
+  outline: none;
+}
+
+input:focus,
+textarea:focus,
+button:focus-visible {
+  border-color: rgba(15, 118, 110, 0.55);
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.12);
+}
+
+textarea {
+  min-height: 260px;
+  resize: vertical;
+  padding: 16px;
+  line-height: 1.55;
+  font-family: "SFMono-Regular", "SF Mono", Consolas, monospace;
+  font-size: 0.92rem;
+}
+
+/* =============================================================
+   Buttons
+   .primary — filled teal CTA.
+   .secondary — ghost/tinted action.
+   ============================================================= */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+button {
+  border: 0;
+  border-radius: 999px;
+  padding: 13px 18px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease,
+    opacity 160ms ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+.primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #fff;
+  box-shadow: 0 16px 28px rgba(15, 118, 110, 0.22);
+}
+
+.secondary {
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--accent-strong);
+}
+
+/* =============================================================
+   Status messages
+   Hidden by default; shown via data-state="error|success".
+   ============================================================= */
+
+.status {
+  display: none;
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-size: 0.96rem;
+  line-height: 1.5;
+}
+
+.status[data-state="error"] {
+  display: block;
+  background: rgba(180, 35, 24, 0.08);
+  color: var(--error);
+}
+
+.status[data-state="success"] {
+  display: block;
+  background: rgba(6, 118, 71, 0.09);
+  color: var(--success);
+}
+
+/* =============================================================
+   Output area
+   Wraps the obfuscated code textarea, action buttons, and
+   helper copy below the generator card.
+   ============================================================= */
+
+.output-wrap {
+  display: grid;
+  gap: 10px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.helper-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* =============================================================
+   Test lab
+   In-page sandbox for verifying the generated snippet works.
+   ============================================================= */
+
+.test-lab {
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.64);
+  display: grid;
+  gap: 12px;
+}
+
+.test-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.test-steps {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.sample-box {
+  border: 1px dashed rgba(15, 118, 110, 0.45);
+  border-radius: 14px;
+  background: rgba(15, 118, 110, 0.06);
+  padding: 12px;
+}
+
+.sample-content {
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* =============================================================
+   Output header row
+   Flex row that places the label/subtitle and Peek button
+   at opposite ends of the output section.
+   ============================================================= */
+
+.output-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.tiny-copy {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+/* =============================================================
+   Peek modal
+   Full-screen overlay that displays the unobfuscated snippet.
+   ============================================================= */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 24, 40, 0.54);
+  z-index: 20;
+}
+
+.modal[hidden] {
+  display: none;
+}
+
+.modal-panel {
+  width: min(980px, 100%);
+  max-height: min(86vh, 900px);
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 24px;
+  background: var(--panel-strong);
+  box-shadow: 0 32px 70px rgba(2, 6, 23, 0.28);
+  overflow: hidden;
+}
+
+.modal-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.modal pre {
+  margin: 0;
+  padding: 16px;
+  border-radius: 18px;
+  background: #0c1320;
+  color: #edf2f7;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+  font-family: "SFMono-Regular", "SF Mono", Consolas, monospace;
+  font-size: 0.9rem;
+}
+
+/* =============================================================
+   Responsive — narrow viewports (≤ 720 px)
+   Collapses multi-column layouts to single-column stacks.
+   ============================================================= */
+
+@media (max-width: 720px) {
+  .shell {
+    padding: 16px;
+  }
+
+  .card-inner {
+    padding: 16px;
+  }
+
+  .input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .button-row {
+    flex-direction: column;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  .output-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .modal-panel {
+    max-height: 90vh;
+    padding: 16px;
+  }
+}
