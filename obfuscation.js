@@ -114,7 +114,7 @@
       "var htmlSourceLine = '<br><br>Source: ' + document.location.href;",
       'var temporaryDiv = document.createElement("div");',
       "temporaryDiv.appendChild(clonedContents);",
-      "var plainTextData = temporaryDiv.innerText + plainSourceLine;",
+      "var plainTextData = temporaryDiv.innerText.replace(/\\u00a0/g, ' ').replace(/\\s*\\n\\s*/g, ' ').replace(/[ \\t]{2,}/g, ' ').trim() + plainSourceLine;",
       "var htmlData = temporaryDiv.innerHTML + htmlSourceLine;",
       'event.clipboardData.setData("text/plain", plainTextData);',
       'event.clipboardData.setData("text/html", htmlData);',
