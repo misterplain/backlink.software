@@ -9,13 +9,6 @@
   var generateButton = document.getElementById("generateButton");
   var peekButton = document.getElementById("peekButton");
   var copyOutputButton = document.getElementById("copyOutputButton");
-  var selectTestSampleButton = document.getElementById(
-    "selectTestSampleButton",
-  );
-  var testSampleContent = document.getElementById("testSampleContent");
-  var testPasteBox = document.getElementById("testPasteBox");
-  var testStatusMessage = document.getElementById("testStatusMessage");
-  var testExpectation = document.getElementById("testExpectation");
   var outputCode = document.getElementById("outputCode");
   var statusMessage = document.getElementById("statusMessage");
   var peekModal = document.getElementById("peekModal");
@@ -28,7 +21,6 @@
     obfuscatedCode: "",
     normalizedUrl: "",
     whitelistedHost: "",
-    testListenerEnabled: false,
   };
 
   function setStatus(type, message) {
@@ -39,16 +31,6 @@
   function clearStatus() {
     statusMessage.removeAttribute("data-state");
     statusMessage.textContent = "";
-  }
-
-  function setTestStatus(type, message) {
-    testStatusMessage.dataset.state = type;
-    testStatusMessage.textContent = message;
-  }
-
-  function clearTestStatus() {
-    testStatusMessage.removeAttribute("data-state");
-    testStatusMessage.textContent = "";
   }
 
   function canonicalizeHost(host) {
@@ -66,29 +48,6 @@
       normalizedCurrent === whitelistedHost ||
       normalizedCurrent.endsWith("." + whitelistedHost)
     );
-  }
-
-  function isCurrentHostWhitelisted(whitelistedHost) {
-    return isHostWhitelisted(window.location.hostname || "", whitelistedHost);
-  }
-
-  function updateTestExpectation(whitelistedHost) {
-    if (!whitelistedHost) {
-      testExpectation.textContent =
-        "Expected result after paste: on a whitelisted host, copied text + Source: current page URL";
-      return;
-    }
-
-    if (isCurrentHostWhitelisted(whitelistedHost)) {
-      testExpectation.textContent =
-        "Current host is whitelisted. Expected result: copied text + Source: current page URL.";
-      return;
-    }
-
-    testExpectation.textContent =
-      "Current host is not whitelisted (" +
-      whitelistedHost +
-      "). Expected result here: no Source line.";
   }
 
   function normalizeUrl(value) {
@@ -246,12 +205,8 @@
     state.obfuscatedCode = "";
     state.normalizedUrl = "";
     state.whitelistedHost = "";
-    state.testListenerEnabled = false;
     outputCode.value = "";
-    testPasteBox.value = "";
     peekOutput.textContent = "";
-    clearTestStatus();
-    updateTestExpectation("");
     closeModal();
   }
 
@@ -289,75 +244,6 @@
     setStatus("error", "Clipboard copy failed. Select and copy manually.");
   }
 
-  function activateTestListener() {
-    if (!state.obfuscatedCode) {
-      setTestStatus(
-        "error",
-        "Generate a snippet before running the test listener.",
-      );
-      return;
-    }
-
-    if (state.testListenerEnabled) {
-      return;
-    }
-
-    try {
-      new Function(state.obfuscatedCode)();
-      state.testListenerEnabled = true;
-      setTestStatus(
-        "success",
-        "Test listener is active. Copy the sample text and paste into the result box.",
-      );
-    } catch (error) {
-      setTestStatus("error", "Could not run generated code: " + error.message);
-    }
-  }
-
-  function selectTestSample() {
-    var selection = window.getSelection();
-    var range = document.createRange();
-
-    range.selectNodeContents(testSampleContent);
-    selection.removeAllRanges();
-    selection.addRange(range);
-
-    setTestStatus(
-      "success",
-      "Sample selected. Press Cmd+C (or Ctrl+C), then paste below.",
-    );
-  }
-
-  function evaluatePastedContent() {
-    var value = testPasteBox.value.trim();
-
-    if (!value) {
-      clearTestStatus();
-      return;
-    }
-
-    if (value.includes("Source:")) {
-      setTestStatus(
-        "success",
-        "Backlink detected. Obfuscated copy handler worked.",
-      );
-      return;
-    }
-
-    if (!isCurrentHostWhitelisted(state.whitelistedHost)) {
-      setTestStatus(
-        "success",
-        "No Source backlink detected, which is expected because this host is outside the whitelist.",
-      );
-      return;
-    }
-
-    setTestStatus(
-      "error",
-      "No Source backlink found yet. Re-copy the sample text and paste again.",
-    );
-  }
-
   function openModal() {
     peekModal.hidden = false;
     peekModal.setAttribute("aria-hidden", "false");
@@ -382,15 +268,10 @@
     state.obfuscatedCode = obfuscate(state.sourceCode);
     state.normalizedUrl = validation.value;
     state.whitelistedHost = validation.whitelistedHost;
-    state.testListenerEnabled = false;
     outputCode.value = state.obfuscatedCode;
-    testPasteBox.value = "";
     peekOutput.textContent = state.previewCode;
     peekButton.disabled = false;
     copyOutputButton.disabled = false;
-    clearTestStatus();
-    updateTestExpectation(validation.whitelistedHost);
-    activateTestListener();
 
     setStatus(
       "success",
@@ -402,8 +283,6 @@
 
   generateButton.addEventListener("click", generate);
   copyOutputButton.addEventListener("click", copyObfuscatedOutput);
-  selectTestSampleButton.addEventListener("click", selectTestSample);
-  testPasteBox.addEventListener("input", evaluatePastedContent);
 
   urlInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {

@@ -23,7 +23,8 @@
           <p class="subhead">
             Paste a root URL to whitelist that domain, generate an obfuscated
             snippet, and preview the original code before adding it to your
-            project.
+            project. Deployment testing is handled in the dedicated
+            obfuscator-test environment.
           </p>
         </header>
 
@@ -101,58 +102,38 @@
               </p>
             </div>
 
-            <!-- Test lab: run the snippet in-page and verify clipboard output -->
             <section class="test-lab" aria-labelledby="testLabTitle">
               <h3 class="test-title" id="testLabTitle">
-                Test the generated obfuscated code
+                How to validate your generated code
               </h3>
               <ol class="test-steps">
-                <li>Generate an obfuscated snippet from your URL.</li>
                 <li>
-                  The test listener is activated automatically. Select the
-                  sample text and copy it.
+                  Generate your obfuscated snippet from the root URL above.
                 </li>
                 <li>
-                  Paste into the box below and check whether Source appears
-                  based on whitelist matching.
+                  Deploy or inject that snippet on a site using that same root
+                  domain.
+                </li>
+                <li>
+                  Open the hosted test app, copy provided sample text on each
+                  route, then paste into the route-specific paste box to confirm
+                  <strong>Source: current page URL</strong> is appended.
                 </li>
               </ol>
-
-              <div class="button-row">
-                <button
-                  id="selectTestSampleButton"
-                  class="secondary"
-                  type="button"
-                >
-                  Select sample text
-                </button>
-              </div>
-
-              <p id="testExpectation" class="helper-text">
-                Expected result after paste: on a whitelisted host, copied text
-                + Source: current page URL
+              <p class="helper-text">
+                The test app includes multiple pages so you can verify dynamic
+                behavior across routes that share the same base URL.
               </p>
-
-              <div class="sample-box">
-                <p class="sample-content" id="testSampleContent">
-                  This is sample content to verify backlink injection. Copy this
-                  sentence, then paste it below to check whether Source is
-                  automatically appended.
-                </p>
-              </div>
-
-              <label class="field-label" for="testPasteBox">Paste result</label>
-              <textarea
-                id="testPasteBox"
-                placeholder="Paste here after copying the sample text."
-              ></textarea>
-              <div
-                id="testStatusMessage"
-                class="status"
-                role="status"
-                aria-live="polite"
-              ></div>
-            </div>
+              <p class="helper-text">
+                Test environment:
+                <a
+                  href="https://backlink-software-test.onrender.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >https://backlink-software-test.onrender.com/</a
+                >
+              </p>
+            </section>
           </div>
         </section>
       </section>
