@@ -2,21 +2,9 @@
  * obfuscation.js
  *
  * Generator logic for backlink.software.
- *
- * Responsibilities:
- *  - Validate and normalise the target URL supplied by the user.
- *  - Build a self-executing copy-event listener snippet that appends a
- *    "Source: <url>" attribution to any text copied from a host page.
- *  - Obfuscate that snippet (identifier mangling + Base64 string encoding)
- *    so it is not immediately readable in page source.
- *  - Wire up all UI interactions: Generate, Copy output, Peek modal,
- *    Test lab sample selection, and paste verification.
  */
 
 (function () {
-  /* ----------------------------------------------------------
-     DOM references
-  ---------------------------------------------------------- */
   var urlInput = document.getElementById("urlInput");
   var generateButton = document.getElementById("generateButton");
   var peekButton = document.getElementById("peekButton");
@@ -34,26 +22,14 @@
   var peekOutput = document.getElementById("peekOutput");
   var closeModalButton = document.getElementById("closeModalButton");
 
-  /* ----------------------------------------------------------
-     Application state
-     Holds the last-generated snippet and related metadata so
-     that UI actions (Peek, Copy, Test) can access them without
-     re-running generation.
-  ---------------------------------------------------------- */
   var state = {
     previewCode: "",
     sourceCode: "",
     obfuscatedCode: "",
     normalizedUrl: "",
+    whitelistedHost: "",
     testListenerEnabled: false,
   };
-
-  /* ----------------------------------------------------------
-     Status helpers
-     Drive the aria-live status banner and the test-lab banner
-     by setting / clearing the data-state attribute, which CSS
-     uses to show the correct colour variant.
-  ---------------------------------------------------------- */
 
   function setStatus(type, message) {
     statusMessage.dataset.state = type;
@@ -75,33 +51,46 @@
     testStatusMessage.textContent = "";
   }
 
-  /**
-   * Updates the expectation hint shown above the paste box.
-   * @param {string} url - The normalised backlink URL, or empty string to reset.
-   */
-  function updateTestExpectation(url) {
-    if (!url) {
+  function canonicalizeHost(host) {
+    return host.toLowerCase().replace(/^www\./i, "");
+  }
+
+  function isHostWhitelisted(currentHost, whitelistedHost) {
+    if (!whitelistedHost) {
+      return false;
+    }
+
+    var normalizedCurrent = canonicalizeHost(currentHost || "");
+
+    return (
+      normalizedCurrent === whitelistedHost ||
+      normalizedCurrent.endsWith("." + whitelistedHost)
+    );
+  }
+
+  function isCurrentHostWhitelisted(whitelistedHost) {
+    return isHostWhitelisted(window.location.hostname || "", whitelistedHost);
+  }
+
+  function updateTestExpectation(whitelistedHost) {
+    if (!whitelistedHost) {
       testExpectation.textContent =
-        "Expected result after paste: your copied text + Source: your URL";
+        "Expected result after paste: on a whitelisted host, copied text + Source: current page URL";
+      return;
+    }
+
+    if (isCurrentHostWhitelisted(whitelistedHost)) {
+      testExpectation.textContent =
+        "Current host is whitelisted. Expected result: copied text + Source: current page URL.";
       return;
     }
 
     testExpectation.textContent =
-      "Expected result after paste: your copied text + Source: " + url;
+      "Current host is not whitelisted (" +
+      whitelistedHost +
+      "). Expected result here: no Source line.";
   }
 
-  /* ----------------------------------------------------------
-     URL validation
-     Accepts bare domains (e.g. "example.com") by prepending
-     "https://", then uses the URL constructor for strict
-     structural validation.
-  ---------------------------------------------------------- */
-
-  /**
-   * Normalises and validates a raw URL string.
-   * @param {string} value - Raw input from the URL field.
-   * @returns {{ ok: true, value: string } | { ok: false, error: string }}
-   */
   function normalizeUrl(value) {
     var trimmed = value.trim();
 
@@ -134,7 +123,11 @@
         };
       }
 
-      return { ok: true, value: parsed.href };
+      return {
+        ok: true,
+        value: parsed.href,
+        whitelistedHost: canonicalizeHost(parsed.hostname),
+      };
     } catch (error) {
       return {
         ok: false,
@@ -143,74 +136,51 @@
     }
   }
 
-  /* ----------------------------------------------------------
-     Preview snippet
-     Returns the human-readable example shown in the Peek modal.
-     This matches the simplified DOMContentLoaded wrapper the
-     user expects to review, with the selected URL injected into
-     the Source attribution line.
-  ---------------------------------------------------------- */
-
-  /**
-   * Builds the preview snippet for the Peek modal.
-   * @param {string} targetUrl - The validated, normalised backlink URL.
-   * @returns {string} A self-executing JavaScript string.
-   */
-  function buildPreviewCode(targetUrl) {
-    return (
-      '<script>(function() { document.addEventListener("DOMContentLoaded", function() { var attachCopyListener = function() { document.addEventListener("copy", function(event) { handleCopyEvent(event); }); }; var handleCopyEvent = function(event) { try { var selectedRange = window.getSelection().getRangeAt(0); var clonedContents = selectedRange.cloneContents(); var sourceLink = ' +
-      JSON.stringify(" Source: " + targetUrl) +
-      '; var temporaryDiv = document.createElement("div"); temporaryDiv.appendChild(clonedContents); var plainTextData = temporaryDiv.innerText + sourceLink; var htmlData = temporaryDiv.innerHTML + "" + sourceLink + ""; event.clipboardData.setData("text/plain", plainTextData); event.clipboardData.setData("text/html", htmlData); event.preventDefault(); } catch (error) { console.error("Error handling copy event:", error); } }; attachCopyListener(); }); })();</script>'
-    );
+  function buildSnippetBody(whitelistedHost) {
+    return [
+      "(function() {",
+      "var whitelistedHost = ",
+      JSON.stringify(whitelistedHost),
+      ";",
+      'var canonicalHost = function(host) { var normalizedHost = (host || "").toLowerCase(); return normalizedHost.indexOf("www.") === 0 ? normalizedHost.slice(4) : normalizedHost; };',
+      'var isAllowedHost = function(host) { var currentHost = canonicalHost(host || ""); return currentHost === whitelistedHost || currentHost.endsWith("." + whitelistedHost); };',
+      'document.addEventListener("DOMContentLoaded", function() {',
+      'var attachCopyListener = function() { document.addEventListener("copy", function(event) { handleCopyEvent(event); }); };',
+      "var handleCopyEvent = function(event) {",
+      "if (!isAllowedHost(document.location.hostname)) { return; }",
+      "try {",
+      "var selectedRange = window.getSelection().getRangeAt(0);",
+      "var clonedContents = selectedRange.cloneContents();",
+      "var sourceLink = ' Source: ' + document.location.href;",
+      'var temporaryDiv = document.createElement("div");',
+      "temporaryDiv.appendChild(clonedContents);",
+      "var plainTextData = temporaryDiv.innerText + sourceLink;",
+      "var htmlData = temporaryDiv.innerHTML + '' + sourceLink + '';",
+      'event.clipboardData.setData("text/plain", plainTextData);',
+      'event.clipboardData.setData("text/html", htmlData);',
+      "event.preventDefault();",
+      "} catch (error) { console.error('Error handling copy event:', error); }",
+      "};",
+      "attachCopyListener();",
+      "});",
+      "})();",
+    ].join("");
   }
 
-  /* ----------------------------------------------------------
-     Obfuscation source
-     Builds the functional JavaScript snippet that is copied by
-     the output textarea. This remains script-only so the obfu-
-     scation step keeps producing valid executable code.
-  ---------------------------------------------------------- */
-
-  /**
-   * Builds the executable copy-listener IIFE for the given URL.
-   * @param {string} targetUrl - The validated, normalised backlink URL.
-   * @returns {string} A self-executing JavaScript string.
-   */
-  function buildSourceCode(targetUrl) {
-    return (
-      '(function() { var attachCopyListener = function() { document.addEventListener("copy", function(event) { handleCopyEvent(event); }); }; var handleCopyEvent = function(event) { try { var selectedRange = window.getSelection().getRangeAt(0); var clonedContents = selectedRange.cloneContents(); var sourceLink = ' +
-      JSON.stringify("Source: " + targetUrl) +
-      '; var temporaryDiv = document.createElement("div"); temporaryDiv.appendChild(clonedContents); var lf = String.fromCharCode(10); var cr = String.fromCharCode(13); var nbsp = String.fromCharCode(160); var normalizedPlainText = temporaryDiv.innerText; normalizedPlainText = normalizedPlainText.split(nbsp).join(" "); normalizedPlainText = normalizedPlainText.split(cr + lf).join(lf); normalizedPlainText = normalizedPlainText.split(cr).join(lf); var plainLines = normalizedPlainText.split(lf); var cleanedLines = []; for (var lineIndex = 0; lineIndex < plainLines.length; lineIndex += 1) { cleanedLines.push(plainLines[lineIndex].trim()); } var collapsedLines = []; var previousWasBlank = false; for (var cleanedIndex = 0; cleanedIndex < cleanedLines.length; cleanedIndex += 1) { var line = cleanedLines[cleanedIndex]; if (line === "") { if (!previousWasBlank) { collapsedLines.push(line); } previousWasBlank = true; } else { collapsedLines.push(line); previousWasBlank = false; } } normalizedPlainText = collapsedLines.join(lf).trim(); var separator = lf + lf; var plainTextData = normalizedPlainText ? normalizedPlainText + separator + sourceLink : sourceLink; var sourceLinkHtml = sourceLink.split("&").join("&amp;").split("<").join("&lt;").split(">").join("&gt;"); var htmlBody = temporaryDiv.innerHTML.trim(); var htmlData = htmlBody ? htmlBody + "<div><br></div><div>" + sourceLinkHtml + "</div>" : "<div>" + sourceLinkHtml + "</div>"; event.clipboardData.setData("text/plain", plainTextData); event.clipboardData.setData("text/html", htmlData); event.preventDefault(); } catch (error) { console.error("Error handling copy event:", error); } }; if (window.__backlinkSoftwareCopyListenerAttached) { return; } window.__backlinkSoftwareCopyListenerAttached = true; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", function() { attachCopyListener(); }); } else { attachCopyListener(); } })();'
-    );
+  function buildPreviewCode(whitelistedHost) {
+    return "<script>" + buildSnippetBody(whitelistedHost) + "</script>";
   }
 
-  /* ----------------------------------------------------------
-     Obfuscation pipeline
-     Two sequential transforms applied to the plain snippet:
-       1. simpleObfuscate — renames every non-reserved identifier
-          to a short hex token (_0x1, _0x2, …).
-       2. encodeStrings   — replaces every quoted string literal
-          with an atob("…") call so the raw text is not visible.
-  ---------------------------------------------------------- */
+  function buildSourceCode(whitelistedHost) {
+    return buildSnippetBody(whitelistedHost);
+  }
 
-  /**
-   * Replaces all quoted string literals with atob("<base64>") equivalents.
-   * @param {string} code
-   * @returns {string}
-   */
   function encodeStrings(code) {
     return code.replace(/"([^"]*)"/g, function (_, str) {
       return 'atob("' + btoa(str) + '")';
     });
   }
 
-  /**
-   * Renames all non-reserved identifiers to sequential hex tokens.
-   * Property accesses (token preceded by ".") are left unchanged so
-   * that built-in method names like addEventListener are not mangled.
-   * @param {string} code
-   * @returns {string}
-   */
   function simpleObfuscate(code) {
     var reserved = new Set([
       "var",
@@ -238,9 +208,9 @@
     var counter = 0;
 
     return code.replace(
-      /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\b[a-zA-Z_$][a-zA-Z0-9_$]*\b/g,
+      /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|\/(?:\\.|[^\/\n\\])+\/[gimsuy]*|\b[a-zA-Z_$][a-zA-Z0-9_$]*\b/g,
       function (token, offset, source) {
-        if (token[0] === '"' || token[0] === "'") {
+        if (token[0] === '"' || token[0] === "'" || token[0] === "/") {
           return token;
         }
 
@@ -262,24 +232,12 @@
     );
   }
 
-  /**
-   * Runs the full obfuscation pipeline: identifier mangling then
-   * string encoding.
-   * @param {string} code
-   * @returns {string}
-   */
   function obfuscate(code) {
     code = simpleObfuscate(code);
     code = encodeStrings(code);
     return code;
   }
 
-  /* ----------------------------------------------------------
-     UI actions
-  ---------------------------------------------------------- */
-
-  /** Resets all output state and disables Peek/Copy until the next
-   *  successful generation. Called whenever the URL field changes. */
   function disablePeekUntilSubmitted() {
     peekButton.disabled = true;
     copyOutputButton.disabled = true;
@@ -287,6 +245,7 @@
     state.sourceCode = "";
     state.obfuscatedCode = "";
     state.normalizedUrl = "";
+    state.whitelistedHost = "";
     state.testListenerEnabled = false;
     outputCode.value = "";
     testPasteBox.value = "";
@@ -296,9 +255,6 @@
     closeModal();
   }
 
-  /** Copies the obfuscated snippet to the clipboard.
-   *  Uses the async Clipboard API in secure contexts, falling back
-   *  to the legacy execCommand approach otherwise. */
   function copyObfuscatedOutput() {
     if (!state.obfuscatedCode) {
       setStatus("error", "Generate a snippet before copying output.");
@@ -333,8 +289,6 @@
     setStatus("error", "Clipboard copy failed. Select and copy manually.");
   }
 
-  /** Executes the obfuscated snippet in the current page context so
-   *  the copy listener becomes active for the test lab. */
   function activateTestListener() {
     if (!state.obfuscatedCode) {
       setTestStatus(
@@ -360,8 +314,6 @@
     }
   }
 
-  /** Programmatically selects the sample paragraph text so the user
-   *  can copy it with Cmd/Ctrl+C to test the injected listener. */
   function selectTestSample() {
     var selection = window.getSelection();
     var range = document.createRange();
@@ -376,8 +328,6 @@
     );
   }
 
-  /** Checks the paste box content for the "Source:" attribution
-   *  string and updates the test status banner accordingly. */
   function evaluatePastedContent() {
     var value = testPasteBox.value.trim();
 
@@ -390,6 +340,14 @@
       setTestStatus(
         "success",
         "Backlink detected. Obfuscated copy handler worked.",
+      );
+      return;
+    }
+
+    if (!isCurrentHostWhitelisted(state.whitelistedHost)) {
+      setTestStatus(
+        "success",
+        "No Source backlink detected, which is expected because this host is outside the whitelist.",
       );
       return;
     }
@@ -410,11 +368,6 @@
     peekModal.setAttribute("aria-hidden", "true");
   }
 
-  /**
-   * Main generate handler.
-   * Validates the URL, builds the plain snippet, obfuscates it, populates
-   * the output textarea, and auto-activates the test listener.
-   */
   function generate() {
     var validation = normalizeUrl(urlInput.value);
 
@@ -424,10 +377,11 @@
       return;
     }
 
-    state.previewCode = buildPreviewCode(validation.value);
-    state.sourceCode = buildSourceCode(validation.value);
+    state.previewCode = buildPreviewCode(validation.whitelistedHost);
+    state.sourceCode = buildSourceCode(validation.whitelistedHost);
     state.obfuscatedCode = obfuscate(state.sourceCode);
     state.normalizedUrl = validation.value;
+    state.whitelistedHost = validation.whitelistedHost;
     state.testListenerEnabled = false;
     outputCode.value = state.obfuscatedCode;
     testPasteBox.value = "";
@@ -435,18 +389,16 @@
     peekButton.disabled = false;
     copyOutputButton.disabled = false;
     clearTestStatus();
-    updateTestExpectation(validation.value);
+    updateTestExpectation(validation.whitelistedHost);
     activateTestListener();
 
     setStatus(
       "success",
-      "Snippet generated and test listener auto-activated. Use Peek to review the original code.",
+      "Snippet generated. It will inject Source only on this host and its subdomains: " +
+        validation.whitelistedHost +
+        ".",
     );
   }
-
-  /* ----------------------------------------------------------
-     Event listeners
-  ---------------------------------------------------------- */
 
   generateButton.addEventListener("click", generate);
   copyOutputButton.addEventListener("click", copyObfuscatedOutput);
@@ -489,4 +441,43 @@
   });
 
   disablePeekUntilSubmitted();
+})();
+
+(function () {
+  var _0x1 = atob("YmFja2xpbmstc29mdHdhcmUtdGVzdC5vbnJlbmRlci5jb20=");
+  var _0x2 = function (_0x3) {
+    var _0x4 = (_0x3 || atob("")).toLowerCase();
+    return _0x4.indexOf(atob("d3d3Lg==")) === 0 ? _0x4.slice(4) : _0x4;
+  };
+  var _0x5 = function (_0x3) {
+    var _0x6 = _0x2(_0x3 || atob(""));
+    return _0x6 === _0x1 || _0x6.endsWith(atob("Lg==") + _0x1);
+  };
+  document.addEventListener(atob("RE9NQ29udGVudExvYWRlZA=="), function () {
+    var _0x7 = function () {
+      document.addEventListener(atob("Y29weQ=="), function (_0x8) {
+        _0x9(_0x8);
+      });
+    };
+    var _0x9 = function (_0x8) {
+      if (!_0x5(document.location.hostname)) {
+        return;
+      }
+      try {
+        var _0xa = window.getSelection().getRangeAt(0);
+        var _0xb = _0xa.cloneContents();
+        var _0xc = " Source: " + document.location.href;
+        var _0xd = document.createElement(atob("ZGl2"));
+        _0xd.appendChild(_0xb);
+        var _0xe = _0xd.innerText + _0xc;
+        var _0xf = _0xd.innerHTML + "" + _0xc + "";
+        _0x8.clipboardData.setData(atob("dGV4dC9wbGFpbg=="), _0xe);
+        _0x8.clipboardData.setData(atob("dGV4dC9odG1s"), _0xf);
+        _0x8.preventDefault();
+      } catch (_0x10) {
+        console.error("Error handling copy event:", _0x10);
+      }
+    };
+    _0x7();
+  });
 })();

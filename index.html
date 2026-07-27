@@ -21,8 +21,9 @@
           <p class="eyebrow">Backlink injector</p>
           <h1>backlink.software</h1>
           <p class="subhead">
-            Paste a URL, generate a minimal obfuscated snippet, and preview the
-            original code before you copy it into your project.
+            Paste a root URL to whitelist that domain, generate an obfuscated
+            snippet, and preview the original code before adding it to your
+            project.
           </p>
         </header>
 
@@ -31,7 +32,9 @@
           <div class="card-inner">
             <!-- URL input row: text field + Generate button -->
             <div>
-              <label class="field-label" for="urlInput">Backlink URL</label>
+              <label class="field-label" for="urlInput"
+                >Whitelisted root URL</label
+              >
               <div class="input-row">
                 <input
                   id="urlInput"
@@ -66,9 +69,7 @@
                     id="generator-title"
                     >Obfuscated output</label
                   >
-                  <div class="tiny-copy">
-                    Copy this into your project after generation.
-                  </div>
+                  <div class="tiny-copy">Copy this into your project.</div>
                 </div>
                 <button
                   id="peekButton"
@@ -95,7 +96,8 @@
                 </button>
               </div>
               <p class="helper-text">
-                Generate first, then copy this output into your project.
+                The snippet appends Source using the live page URL, but only on
+                the whitelisted host and its subdomains.
               </p>
             </div>
 
@@ -111,8 +113,8 @@
                   sample text and copy it.
                 </li>
                 <li>
-                  Paste into the box below and confirm the Source backlink is
-                  appended.
+                  Paste into the box below and check whether Source appears
+                  based on whitelist matching.
                 </li>
               </ol>
 
@@ -127,7 +129,8 @@
               </div>
 
               <p id="testExpectation" class="helper-text">
-                Expected result after paste: your copied text + Source: your URL
+                Expected result after paste: on a whitelisted host, copied text
+                + Source: current page URL
               </p>
 
               <div class="sample-box">
