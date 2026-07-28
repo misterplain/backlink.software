@@ -89,14 +89,12 @@
 
   function buildSnippetBody(whitelistedHost) {
     var escapedWhitelistHost = escapeRegex(whitelistedHost);
-    var exactHostPattern = "^" + escapedWhitelistHost + "$";
-    var subdomainPattern = "^.*\\." + escapedWhitelistHost + "$";
 
     return [
       "(function() {",
       "var whitelist = [",
-      "new RegExp(" + JSON.stringify(exactHostPattern) + ",'i'),",
-      "new RegExp(" + JSON.stringify(subdomainPattern) + ",'i'),",
+      "/^" + escapedWhitelistHost + "$/i,",
+      "/^.*\\." + escapedWhitelistHost + "$/i,",
       "/^localhost$/i,",
       "/^127\\.0\\.0\\.1$/i,",
       "/^192\\.168\\.\\d{1,3}\\.\\d{1,3}$/i,",
