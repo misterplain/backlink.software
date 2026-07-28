@@ -23,8 +23,8 @@
           <p class="subhead">
             Paste a root URL to whitelist that domain, generate an obfuscated
             snippet, and preview the original code before adding it to your
-            project. Deployment testing is handled in the dedicated
-            obfuscator-test environment.
+            project. You can validate behavior on your deployed domain and in
+            your local dev environment before rollout.
           </p>
         </header>
 
@@ -111,27 +111,64 @@
                   Generate your obfuscated snippet from the root URL above.
                 </li>
                 <li>
-                  Deploy or inject that snippet on a site using that same root
-                  domain.
+                  Add the generated snippet to your target site template (for
+                  example, before <code>&lt;/body&gt;</code>) so it runs on page
+                  load.
                 </li>
                 <li>
-                  Open the hosted test app, copy provided sample text on each
-                  route, then paste into the route-specific paste box to confirm
+                  Test copy behavior by selecting normal page text, copying, and
+                  pasting into a plain textarea or note app to confirm
                   <strong>Source: current page URL</strong> is appended.
                 </li>
               </ol>
+
               <p class="helper-text">
-                The test app includes multiple pages so you can verify dynamic
-                behavior across routes that share the same base URL.
+                <strong>Option A: Deployed-domain validation</strong>
               </p>
+              <ol class="test-steps">
+                <li>
+                  Deploy your snippet to pages on the same root domain you used
+                  in the generator.
+                </li>
+                <li>
+                  Verify copied text includes Source links that match each page
+                  URL across multiple routes.
+                </li>
+              </ol>
+
               <p class="helper-text">
-                Test environment:
+                <strong>Option B: Local and dev-environment validation</strong>
+              </p>
+              <ol class="test-steps">
+                <li>
+                  Use your normal local host (for example
+                  <code>localhost</code>, <code>127.0.0.1</code>, or a LAN IP
+                  like <code>192.168.x.x</code>) while developing.
+                </li>
+                <li>
+                  Paste the generated snippet into your local template or test
+                  page, refresh, then copy text to verify Source is appended in
+                  local runs too.
+                </li>
+                <li>
+                  Remove the snippet from temporary test pages once validation
+                  is complete and keep the production placement only where
+                  required.
+                </li>
+              </ol>
+
+              <p class="helper-text">
+                Hosted demo environment:
                 <a
                   href="https://backlink-software-test.onrender.com/"
                   target="_blank"
                   rel="noopener noreferrer"
                   >https://backlink-software-test.onrender.com/</a
                 >
+              </p>
+              <p class="helper-text">
+                Local validation is now supported by the generated whitelist, so
+                you can test before deploying.
               </p>
             </section>
           </div>

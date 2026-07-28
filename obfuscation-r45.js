@@ -38,6 +38,10 @@
     return host.toLowerCase().replace(/^www\./i, "");
   }
 
+  function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
   function normalizeUrl(value) {
     var trimmed = value.trim();
 
@@ -84,25 +88,41 @@
   }
 
   function buildSnippetBody(whitelistedHost) {
+    var escapedWhitelistHost = escapeRegex(whitelistedHost);
+    var exactHostPattern = "^" + escapedWhitelistHost + "$";
+    var subdomainPattern = "^.*\\." + escapedWhitelistHost + "$";
+
     return [
       "(function() {",
-      "var whitelistedHost = ",
-      JSON.stringify(whitelistedHost),
-      ";",
+      "var whitelist = [",
+      "new RegExp(" + JSON.stringify(exactHostPattern) + ",'i'),",
+      "new RegExp(" + JSON.stringify(subdomainPattern) + ",'i'),",
+      "/^localhost$/i,",
+      "/^127\\.0\\.0\\.1$/i,",
+      "/^192\\.168\\.\\d{1,3}\\.\\d{1,3}$/i,",
+      "/^10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$/i,",
+      "/^172\\.(1[6-9]|2\\d|3[01])\\.\\d{1,3}\\.\\d{1,3}$/i,",
+      "/^::1$/i",
+      "];",
       'var canonicalHost = function(host) { var normalizedHost = (host || "").toLowerCase(); return normalizedHost.indexOf("www.") === 0 ? normalizedHost.slice(4) : normalizedHost; };',
-      'var isAllowedHost = function(host) { var currentHost = canonicalHost(host || ""); return currentHost === whitelistedHost || currentHost.endsWith("." + whitelistedHost); };',
+      'var isAllowedHost = function(host) { var currentHost = canonicalHost(host || ""); return whitelist.some(function(pattern) { return pattern.test(currentHost); }); };',
       'document.addEventListener("DOMContentLoaded", function() {',
       'var attachCopyListener = function() { document.addEventListener("copy", function(event) { handleCopyEvent(event); }); };',
       "var handleCopyEvent = function(event) {",
       "if (!isAllowedHost(document.location.hostname)) { return; }",
       "try {",
-      "var selectedRange = window.getSelection().getRangeAt(0);",
+      "var selection = window.getSelection();",
+      "if (!selection || selection.rangeCount === 0 || selection.isCollapsed) { return; }",
+      "var selectedRange = selection.getRangeAt(0);",
       "var clonedContents = selectedRange.cloneContents();",
-      "var plainSourceLine = '\\n\\nSource: ' + document.location.href;",
-      "var htmlSourceLine = '<br><br>Source: ' + document.location.href;",
       'var temporaryDiv = document.createElement("div");',
       "temporaryDiv.appendChild(clonedContents);",
-      "var plainTextData = temporaryDiv.innerText.replace(/\\u00a0/g, ' ').replace(/\\s*\\n\\s*/g, ' ').replace(/[ \\t]{2,}/g, ' ').trim() + plainSourceLine;",
+      "temporaryDiv.querySelectorAll('script,style').forEach(function(node) { node.remove(); });",
+      "var selectedText = selection.toString().replace(/\\u00a0/g, ' ').replace(/\\s*\\n\\s*/g, ' ').replace(/[ \\t]{2,}/g, ' ').trim();",
+      "if (!selectedText) { return; }",
+      "var plainSourceLine = String.fromCharCode(10,10) + 'Source: ' + document.location.href;",
+      "var htmlSourceLine = '<br><br>Source: ' + document.location.href;",
+      "var plainTextData = selectedText + plainSourceLine;",
       "var htmlData = temporaryDiv.innerHTML + htmlSourceLine;",
       'event.clipboardData.setData("text/plain", plainTextData);',
       'event.clipboardData.setData("text/html", htmlData);',
@@ -140,6 +160,7 @@
       "document",
       "window",
       "console",
+      "RegExp",
       "try",
       "catch",
       "new",
